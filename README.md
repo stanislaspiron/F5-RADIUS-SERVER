@@ -1,4 +1,4 @@
-this code convert APM policy to a RADIUS server.
+this code handle RADIUS request, decode password, validate authentication and respond with **Access-Accept** or **Access-Reject** packet
 
 ### Code description
 
@@ -19,11 +19,15 @@ When a Radius request is accepted by the VS:
 
 *   return **Access-Accept** or **Access-Reject** response code based on the session result.
 
-There are 2 versions of this code :
+There are 4 versions of this code :
 
-* binary decoding of the whole UDP packet (decoding)
+* binary decoding of the whole UDP packet (decoding) and password validation with Authenticator algorithm
 
-* irule using RADIUS::avp commands (native)
+* irule using RADIUS::avp commands (native) and password validation with Authenticator algorithm
+
+* binary decoding of the whole UDP packet (decoding) and password validation with APM Access Policy
+
+* irule using RADIUS::avp commands (native) and password validation with APM Access Policy
 
 ### Supported request Packet types:
 
