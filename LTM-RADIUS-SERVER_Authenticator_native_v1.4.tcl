@@ -171,7 +171,6 @@ when CLIENT_ACCEPTED {
         binary scan [md5 $RADCLIENT(KEY)[binary format WW $px_64bits_1 $px_64bits_2]] WW bx_64bits_1 bx_64bits_2
       }
       binary scan [binary format W* $PASSWORD_LIST] A* PASSWORD
-      log local0. "Password is $PASSWORD"
       ########## END OF PASSWORD DECRYPTION ############################
 
       ########## START OF GOOGLE AUTHENTICATION ############################
