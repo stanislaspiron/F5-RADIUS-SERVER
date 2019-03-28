@@ -167,10 +167,6 @@ when CLIENT_ACCEPTED {
       binary scan $USER_PASSWORD W* USER_PASSWORD_W_LIST
       set PASSWORD_LIST [list]
       foreach {px_64bits_1 px_64bits_2} $USER_PASSWORD_W_LIST {
-        append Password_Padded [binary format WW \
-                                 [expr { $px_64bits_1 ^ $bx_64bits_1 }]\
-                                 [expr { $px_64bits_2 ^ $bx_64bits_2 }]\
-                       ]
         lappend PASSWORD_LIST [expr { $px_64bits_1 ^ $bx_64bits_1 }] [expr { $px_64bits_2 ^ $bx_64bits_2 }]
         binary scan [md5 $RADCLIENT(KEY)[binary format WW $px_64bits_1 $px_64bits_2]] WW bx_64bits_1 bx_64bits_2
       }
