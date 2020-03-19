@@ -72,11 +72,11 @@ All RFC2865 attributes are allowed. Vendor specific attributes are not supported
 * Create a Datagroup with following configuration :
    * name : google_auth_keys
    * type : String
-   * values : <username> := <Base32 key encoded>
+   * values : UserName := "Base32 key encoded"
 * Create a Datagroup with following configuration :
    * name : radius_clients
    * type : Address
-   * values : <IP Address> := <Shared\ Secret [REQMSGAUTH_REQUIRE 1] [RESPMSGAUTH_INSERT 1]>
+   * values : "IP Address" := "Shared\ Secret [REQMSGAUTH_REQUIRE 1] [RESPMSGAUTH_INSERT 1]"
       * If REQMSGAUTH_REQUIRE is set to 1, the request must include Message Authenticator attribute
       * If RESPMSGAUTH_INSERT is set to 1, the irule insert Message Authenticator attribute in response
 
