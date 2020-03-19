@@ -1,5 +1,7 @@
 this code handle RADIUS request, decode password, validate authentication and respond with **Access-Accept** or **Access-Reject** packet
 
+The goal of this code is to create a shared Google Auth for Internal BigIP authentications such as APM module and external services (Firewall/VPN authentication, ...)
+
 ### Code description
 
 When a Radius request is accepted by the VS:
@@ -10,12 +12,6 @@ When a Radius request is accepted by the VS:
     *   if not : drop the packet
 
 *   the password is decrypted with radius secret
-
-*   if request code is **Access-Request**, an APM session is created and radius attributes are set as session variable (including username and password)
-
-*   Access session is evaluated and return `allow` or `deny` result
-
-*   If the Access policy include radius attribute stored in variable `session.result.radius_attr`, attributes are added to the radius response
 
 *   return **Access-Accept** or **Access-Reject** response code based on the session result.
 
@@ -83,3 +79,21 @@ All RFC2865 attributes are allowed. Vendor specific attributes are not supported
    * values : <IP Address> := <Shared\ Secret [REQMSGAUTH_REQUIRE 1] [RESPMSGAUTH_INSERT 1]>
       * If REQMSGAUTH_REQUIRE is set to 1, the request must include Message Authenticator attribute
       * If RESPMSGAUTH_INSERT is set to 1, the irule insert Message Authenticator attribute in response
+
+### Virtual server Configuration :
+
+    ltm virtual VS_MYLAB_RADIUS {
+        destination 192.168.1.248:1812
+        ip-protocol udp
+        mask 255.255.255.255
+        profiles {
+            udp { }
+        }
+        rules {
+            RADIUS_GOOGLE_AUTH_NATIVE_1.4
+        }
+        serverssl-use-sni disabled
+        source 0.0.0.0/0
+        translate-address enabled
+        translate-port enabled
+    }
