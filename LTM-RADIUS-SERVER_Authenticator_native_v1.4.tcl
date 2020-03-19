@@ -50,7 +50,7 @@ when RULE_INIT {
    set static::allowed_clock_skew_units 1
 }
 
-when CLIENT_ACCEPTED {
+when CLIENT_DATA {
   binary scan [md5 [UDP::payload]] H* PAYLOAD_HASH
   switch [set DUPLICATE_RESPONSE [table lookup -subtable [IP::client_addr] $PAYLOAD_HASH]] {
     "" {
@@ -84,7 +84,7 @@ when CLIENT_ACCEPTED {
    set RADCLIENT(RFC_2865_COMPLIANCE) 1
     #Retreive RADIUS client shared secret and radius client capabilities.
    array set RADCLIENT [class match -value [IP::client_addr] equals $static::client_list]
-   
+
    ############## END OF ALLOWED RADIUS CLIENT IP VALIDATION #################
    set IDENTIFIER [RADIUS::id]
    ############## START OF RFC COMPLIANCE AND SERVER FEATURES VALIDATION #################
@@ -92,9 +92,8 @@ when CLIENT_ACCEPTED {
       1 {
          set REQUEST_NOT_ALLOWED 0
          # RFC 2865 : Upon receipt of an Access-Request from a valid client, an appropriate reply MUST be transmitted. 
-         set MESSAGE_AUTHENTICATOR [RADIUS::avp 80]
-         RADIUS::avp replace 80 [binary format H32 0]
          #EVALUATE REQUEST MESSAGE-AUTHENTICATOR
+         if {[set MESSAGE_AUTHENTICATOR [RADIUS::avp 80]] != ""} { RADIUS::avp replace 80 [binary format H32 0] }
         if {$RADCLIENT(REQMSGAUTH_REQUIRE) && ($MESSAGE_AUTHENTICATOR equals "" || ![CRYPTO::verify -alg hmac-md5 -key $RADCLIENT(KEY) -signature $MESSAGE_AUTHENTICATOR [UDP::payload]])} {
           # RFC 2869 : A RADIUS Server receiving an Access-Request with a Message-Authenticator Attribute present MUST calculate the correct value
           # of the Message-Authenticator and silently discard the packet if it does not match the value sent.
@@ -109,8 +108,9 @@ when CLIENT_ACCEPTED {
          set NAS_PORT [RADIUS::avp 5 integer]
          set STATE [RADIUS::avp 24]
          set NAS_IDENTIFIER [RADIUS::avp 32]
+         log local0. [RADIUS::avp 32]
          set NAS_PORT_TYPE [RADIUS::avp 61 integer]
-         if {$static::RFC_2865_FULL_COMPLIANCE} {
+         if {$RADCLIENT(RFC_2865_COMPLIANCE)} {
             if {$NAS_IP_ADDRESS equals "" && $NAS_IDENTIFIER equals ""} {
                # RFC 2865 : It MUST contain either a NAS-IP-Address attribute or a NAS-Identifier attribute (or both).
                set REQUEST_NOT_ALLOWED 1
@@ -150,7 +150,7 @@ when CLIENT_ACCEPTED {
       }
    }
    ############## END OF RFC COMPLIANCE AND SERVER FEATURES VALIDATION #################
- 
+
   #Extract RADIUS Authenticator form PAYLOAD
    if {![binary scan [UDP::payload] @4a16 Q_AUTHENTICATOR]} {
       log local0. "Drop reason 2 Payload length : [UDP::payload length] / QLEN : $QLEN"
@@ -171,6 +171,7 @@ when CLIENT_ACCEPTED {
         binary scan [md5 $RADCLIENT(KEY)[binary format WW $px_64bits_1 $px_64bits_2]] WW bx_64bits_1 bx_64bits_2
       }
       binary scan [binary format W* $PASSWORD_LIST] A* PASSWORD
+      log local0. "Password is $PASSWORD"
       ########## END OF PASSWORD DECRYPTION ############################
 
       ########## START OF GOOGLE AUTHENTICATION ############################
@@ -207,11 +208,11 @@ when CLIENT_ACCEPTED {
    if {$RADCLIENT(RESPMSGAUTH_INSERT)} {
     set UNSIGNED_RespAVP $RespAVP[binary format ccH32 80 18 [string repeat 0 32]]
     incr RespLength 18
-    append RespAVP [binary format cc 80 18][CRYPTO::sign -alg hmac-md5 -key $RADCLIENT(KEY) [binary format cH2Sa16a* $ResponseCode $IDENTIFIER $RespLength $Q_AUTHENTICATOR $UNSIGNED_RespAVP]]
+    append RespAVP [binary format cc 80 18][CRYPTO::sign -alg hmac-md5 -key $RADCLIENT(KEY) [binary format ccSa16a* $ResponseCode $IDENTIFIER $RespLength $Q_AUTHENTICATOR $UNSIGNED_RespAVP]]
     }
 
-   binary scan [md5 [binary format cH2Sa16a[expr {$RespLength-20}]a[string length $RADCLIENT(KEY)] $ResponseCode $IDENTIFIER $RespLength $Q_AUTHENTICATOR $RespAVP $RADCLIENT(KEY) ]] H* ResponseAuth
-   set RESPONSE [binary format cH2SH32a* $ResponseCode $IDENTIFIER $RespLength $ResponseAuth $RespAVP]
+   binary scan [md5 [binary format ccSa16a[expr {$RespLength-20}]a[string length $RADCLIENT(KEY)] $ResponseCode $IDENTIFIER $RespLength $Q_AUTHENTICATOR $RespAVP $RADCLIENT(KEY) ]] H* ResponseAuth
+   set RESPONSE [binary format ccSH32a* $ResponseCode $IDENTIFIER $RespLength $ResponseAuth $RespAVP]
    UDP::respond $RESPONSE
    binary scan $RESPONSE H* RESPONSE_HEX
    table add -subtable [IP::client_addr] $PAYLOAD_HASH $RESPONSE_HEX 15 60
