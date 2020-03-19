@@ -70,3 +70,16 @@ All RFC2865 attributes are allowed. Vendor specific attributes are not supported
 **1.3** : Changed Datagroup radius_clients values format to list of parameters and values. this allow to configure per radius client parameters instead of global parameters (Message-Authenticator validation, ...) (1/06/2018)
 
 **1.4** : Security improvement while decoding packet (default decoded integer are signed values, where packet decoding length must be unsigned integer. Thank you Kai wilke for the advices) and added duplicate packet detection (4/06/2018)
+
+### Requirements :
+
+* Create a Datagroup with following configuration :
+   * name : google_auth_keys
+   * type : String
+   * values : <username> := <Base32 key encoded>
+* Create a Datagroup with following configuration :
+   * name : radius_clients
+   * type : Address
+   * values : <IP Address> := <Shared\ Secret [REQMSGAUTH_REQUIRE 1] [RESPMSGAUTH_INSERT 1]>
+      * If REQMSGAUTH_REQUIRE is set to 1, the request must include Message Authenticator attribute
+      * If RESPMSGAUTH_INSERT is set to 1, the irule insert Message Authenticator attribute in response
